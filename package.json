@@ -1,0 +1,21 @@
+{
+  "name": "shadering",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "browserify -t [browserify-shader --parameterize=true] main.js > build/main.js",
+    "watch": "watchify -t browserify-shader main.js -o build/main.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "browserify": "^11.0.1",
+    "browserify-shader": "^0.1.0",
+    "watchify": "^3.3.1"
+  },
+  "dependencies": {
+    "three": "^0.71.0"
+  }
+}
