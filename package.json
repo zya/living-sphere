@@ -16,6 +16,7 @@
     "watchify": "^3.3.1"
   },
   "dependencies": {
+    "dynamics.js": "0.0.7",
     "three": "^0.71.0"
   }
 }
