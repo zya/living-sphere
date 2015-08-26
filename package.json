@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "dynamics.js": "0.0.7",
-    "three": "^0.71.0"
+    "three": "^0.71.0",
+    "lodash": "~3.10.1",
+    "three-orbit-controls": "~71.0.0"
   }
 }
