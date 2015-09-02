@@ -10,8 +10,6 @@ var val1 = 100;
 var val2 = 50;
 var speed1 = 0.002;
 var speed2 = 0.004;
-var color1 = new THREE.Color(1.0, 0.2, 0.1);
-var color2 = new THREE.Color(1.0, 0.2, 0.1);
 
 var scene = new THREE.Scene();
 
@@ -20,7 +18,7 @@ camera.position.z = 1000;
 
 var startTime = Date.now();
 
-var geometry = new THREE.SphereGeometry(400, 200, 200);
+var geometry = new THREE.SphereGeometry(400, 300, 300);
 
 var uniforms = {
   time: {
@@ -38,35 +36,37 @@ var uniforms = {
   val2: {
     type: "f",
     value: 200.0
-  },
-  color1: {
-    type: "c",
-    value: color1
-  },
-  color2: {
-    type: "c",
-    value: color2
   }
 };
 
+var phongUniforms = THREE.ShaderLib.phong.uniforms;
+// console.log(THREE.ShaderLib.phong.fragmentShader);
+console.log(_.merge(uniforms, THREE.UniformsLib.lights, phongUniforms));
 var material = new THREE.ShaderMaterial({
   vertexShader: vs,
   fragmentShader: fs,
   wireframe: true,
-  uniforms: uniforms,
-  vertexColors: THREE.FaceColors
+  uniforms: _.merge(uniforms, THREE.UniformsLib.lights, phongUniforms),
+  vertexColors: THREE.FaceColors,
+  lights: true,
+  shading: THREE.SmoothShading
 });
 
-_.forEach(geometry.faces, function (face) {
+
+_.forEach(geometry.faces, function(face, index) {
+  // to add colours to each face
   face.color = new THREE.Color(Math.random(), Math.random(), Math.random());
 });
 
 var mesh = new THREE.Mesh(geometry, material);
 scene.add(mesh);
 
+window.THREE = THREE;
+
 var renderer = new THREE.WebGLRenderer({
   antialias: true
 });
+
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 document.body.appendChild(renderer.domElement);
@@ -76,27 +76,36 @@ controls.userPan = false;
 controls.userPanSpeed = 0.0;
 controls.maxDistance = 5000.0;
 controls.maxPolarAngle = Math.PI * 0.495;
-// controls.center.set(0, 75, 0);
 
+var light = new THREE.PointLight(0xFF4500, 0.9);
+var light2 = new THREE.PointLight(0x800080, 0.8);
+
+var lightp = new THREE.SphereGeometry(30);
+var lightp2 = new THREE.SphereGeometry(30);
+var lightpmesh = new THREE.Mesh(lightp);
+var lightpmesh2 = new THREE.Mesh(lightp2);
+
+light.position.set(2800, 100, 0.0);
+light2.position.set(-1800, -200, 0.0);
+lightpmesh.position.set(0.0, 0.0, 0.0);
+
+var ambient = new THREE.AmbientLight(0xFFF0F5); // soft white ambient
+scene.add(ambient);
+scene.add(light, light2);
+scene.add(lightpmesh, lightpmesh2);
+
+window.light = light;
+window.lightMesh = lightpmesh;
 window.amp = amp;
 window.val1 = val1;
 window.val2 = val2;
 
-document.addEventListener('click', function () {
+document.addEventListener('click', function() {
 
-  var random = (Math.random() * 1.5) - 0.75;
-
-  dynamics.animate(color1, {
-    r: Math.random(),
-    g: Math.random(),
-    b: Math.random()
-  }, {
-    type: dynamics.easeIn,
-    duration: 1000
-  });
+  var random = (Math.random() * 1) - 0.50;
 
   dynamics.animate(window, {
-    amp: window.amp + random,
+    // amp: window.amp + random,
     val1: Math.random() * 500,
     val2: Math.random() * 400
   }, {
@@ -112,11 +121,12 @@ function animate() {
   material.uniforms.amp.value = window.amp;
   material.uniforms.val1.value = window.val1;
   material.uniforms.val2.value = window.val2;
-  material.uniforms.color1.value = color1;
-  material.uniforms.color2.value = color2;
-  // mesh.rotation.x += 0.002;
-  // mesh.rotation.y += 0.002;
-  // mesh.rotation.z += 0.002;
+  lightpmesh.position.set(light.position.x, light.position.y, light.position.z);
+  lightpmesh2.position.set(light2.position.x, light2.position.y, light2.position.z);
+  mesh.rotation.x += 0.002;
+  mesh.rotation.y += 0.002;
+  mesh.rotation.z += 0.002;
+
   renderer.render(scene, camera);
 }
 

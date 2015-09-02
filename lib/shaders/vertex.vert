@@ -1,11 +1,17 @@
+precision highp float;
 uniform float time;
 uniform float amp;
 uniform float val1;
 uniform float val2;
-uniform vec3 color1;
-uniform vec3 color2;
 
-varying vec3 vColor;
+varying vec2 vUv;
+varying vec3 vecPos;
+varying vec3 vecNormal;
+// uniform vec3 color1;
+// uniform vec3 color2;
+
+
+// varying vec3 vColor;
 // varying vec3 vCoord;
 varying vec3 nColor;
 
@@ -29,14 +35,10 @@ void main() {
   float f3 = mod(position.z, 8.0);
   float f2 = mod(position.z, 2.0);
 
-  if( f == 0.0 || f2 == 0.0 || f3 == 0.0) {
-    vColor = color1;
-  } else {
-    vColor = color2;
-  }
-
   nColor = color;
-
+  vUv = uv;
+  vecPos = (modelMatrix * vec4(p, 1.0 )).xyz;
+  vecNormal = (modelMatrix * vec4(normal, 0.0)).xyz;
   // vCoord = p;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
 }

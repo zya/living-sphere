@@ -1,24 +1,29 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 module.exports = function parse(params){
-      var template = "uniform vec3 color1; \n" +
-"uniform vec3 color2; \n" +
-"uniform float time; \n" +
-"varying vec3 vColor; \n" +
-"varying vec3 vCoord; \n" +
+      var template = "precision highp float; \n" +
+"// uniform vec3 color1; \n" +
+"// uniform vec3 color2; \n" +
+"// uniform float time; \n" +
+"// varying vec3 vColor; \n" +
+"// varying vec3 vCoord; \n" +
 "varying vec3 nColor; \n" +
+"varying vec2 vUv; \n" +
+"varying vec3 vecPos; \n" +
+"varying vec3 vecNormal; \n" +
 " \n" +
-"highp float rand(vec2 co) { \n" +
-"    highp float a = 12.9898; \n" +
-"    highp float b = 78.233; \n" +
-"    highp float c = 43758.5453; \n" +
-"    highp float dt= dot(co.xy ,vec2(a,b)); \n" +
-"    highp float sn= mod(dt,3.14); \n" +
-"    return fract(sin(sn) * c); \n" +
-"} \n" +
+"uniform vec3 pointLightColor[MAX_POINT_LIGHTS]; \n" +
+"uniform vec3 pointLightPosition[MAX_POINT_LIGHTS]; \n" +
+"uniform float pointLightDistance[MAX_POINT_LIGHTS]; \n" +
+"uniform vec3 ambientLightColor; \n" +
 " \n" +
 "void main() { \n" +
-"  vColor.x * sin(time * 0.0002), vColor.yz; \n" +
-"  gl_FragColor = vec4(nColor, 0.2); \n" +
+"  vec4 addedLights = vec4(0.0, 0.0, 0.0, 1.0); \n" +
+"    for(int l = 0; l < MAX_POINT_LIGHTS; l++) { \n" +
+"        vec3 lightDirection = normalize(vecPos - pointLightPosition[l]); \n" +
+"        addedLights.rgb += clamp(dot(-lightDirection, vecNormal), 0.08, 1.0) * pointLightColor[l] * 1.2; \n" +
+"    } \n" +
+" \n" +
+"  gl_FragColor = vec4(nColor, 0.2) * addedLights * vec4(ambientLightColor, 1.0); \n" +
 "} \n" +
 " \n" 
       params = params || {}
@@ -31,14 +36,20 @@ module.exports = function parse(params){
 
 },{}],2:[function(require,module,exports){
 module.exports = function parse(params){
-      var template = "uniform float time; \n" +
+      var template = "precision highp float; \n" +
+"uniform float time; \n" +
 "uniform float amp; \n" +
 "uniform float val1; \n" +
 "uniform float val2; \n" +
-"uniform vec3 color1; \n" +
-"uniform vec3 color2; \n" +
 " \n" +
-"varying vec3 vColor; \n" +
+"varying vec2 vUv; \n" +
+"varying vec3 vecPos; \n" +
+"varying vec3 vecNormal; \n" +
+"// uniform vec3 color1; \n" +
+"// uniform vec3 color2; \n" +
+" \n" +
+" \n" +
+"// varying vec3 vColor; \n" +
 "// varying vec3 vCoord; \n" +
 "varying vec3 nColor; \n" +
 " \n" +
@@ -62,14 +73,10 @@ module.exports = function parse(params){
 "  float f3 = mod(position.z, 8.0); \n" +
 "  float f2 = mod(position.z, 2.0); \n" +
 " \n" +
-"  if( f == 0.0 || f2 == 0.0 || f3 == 0.0) { \n" +
-"    vColor = color1; \n" +
-"  } else { \n" +
-"    vColor = color2; \n" +
-"  } \n" +
-" \n" +
 "  nColor = color; \n" +
-" \n" +
+"  vUv = uv; \n" +
+"  vecPos = (modelMatrix * vec4(p, 1.0 )).xyz; \n" +
+"  vecNormal = (modelMatrix * vec4(normal, 0.0)).xyz; \n" +
 "  // vCoord = p; \n" +
 "  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); \n" +
 "} \n" +
@@ -95,8 +102,6 @@ var val1 = 100;
 var val2 = 50;
 var speed1 = 0.002;
 var speed2 = 0.004;
-var color1 = new THREE.Color(1.0, 0.2, 0.1);
-var color2 = new THREE.Color(1.0, 0.2, 0.1);
 
 var scene = new THREE.Scene();
 
@@ -105,7 +110,7 @@ camera.position.z = 1000;
 
 var startTime = Date.now();
 
-var geometry = new THREE.SphereGeometry(400, 200, 200);
+var geometry = new THREE.SphereGeometry(400, 300, 300);
 
 var uniforms = {
   time: {
@@ -123,35 +128,37 @@ var uniforms = {
   val2: {
     type: "f",
     value: 200.0
-  },
-  color1: {
-    type: "c",
-    value: color1
-  },
-  color2: {
-    type: "c",
-    value: color2
   }
 };
 
+var phongUniforms = THREE.ShaderLib.phong.uniforms;
+// console.log(THREE.ShaderLib.phong.fragmentShader);
+console.log(_.merge(uniforms, THREE.UniformsLib.lights, phongUniforms));
 var material = new THREE.ShaderMaterial({
   vertexShader: vs,
   fragmentShader: fs,
   wireframe: true,
-  uniforms: uniforms,
-  vertexColors: THREE.FaceColors
+  uniforms: _.merge(uniforms, THREE.UniformsLib.lights, phongUniforms),
+  vertexColors: THREE.FaceColors,
+  lights: true,
+  shading: THREE.SmoothShading
 });
 
-_.forEach(geometry.faces, function (face) {
+
+_.forEach(geometry.faces, function(face, index) {
+  // to add colours to each face
   face.color = new THREE.Color(Math.random(), Math.random(), Math.random());
 });
 
 var mesh = new THREE.Mesh(geometry, material);
 scene.add(mesh);
 
+window.THREE = THREE;
+
 var renderer = new THREE.WebGLRenderer({
   antialias: true
 });
+
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 document.body.appendChild(renderer.domElement);
@@ -161,27 +168,36 @@ controls.userPan = false;
 controls.userPanSpeed = 0.0;
 controls.maxDistance = 5000.0;
 controls.maxPolarAngle = Math.PI * 0.495;
-// controls.center.set(0, 75, 0);
 
+var light = new THREE.PointLight(0xFF4500, 0.9);
+var light2 = new THREE.PointLight(0x800080, 0.8);
+
+var lightp = new THREE.SphereGeometry(30);
+var lightp2 = new THREE.SphereGeometry(30);
+var lightpmesh = new THREE.Mesh(lightp);
+var lightpmesh2 = new THREE.Mesh(lightp2);
+
+light.position.set(2800, 100, 0.0);
+light2.position.set(-1800, -200, 0.0);
+lightpmesh.position.set(0.0, 0.0, 0.0);
+
+var ambient = new THREE.AmbientLight(0xFFF0F5); // soft white ambient
+scene.add(ambient);
+scene.add(light, light2);
+scene.add(lightpmesh, lightpmesh2);
+
+window.light = light;
+window.lightMesh = lightpmesh;
 window.amp = amp;
 window.val1 = val1;
 window.val2 = val2;
 
-document.addEventListener('click', function () {
+document.addEventListener('click', function() {
 
-  var random = (Math.random() * 1.5) - 0.75;
-
-  dynamics.animate(color1, {
-    r: Math.random(),
-    g: Math.random(),
-    b: Math.random()
-  }, {
-    type: dynamics.easeIn,
-    duration: 1000
-  });
+  var random = (Math.random() * 1) - 0.50;
 
   dynamics.animate(window, {
-    amp: window.amp + random,
+    // amp: window.amp + random,
     val1: Math.random() * 500,
     val2: Math.random() * 400
   }, {
@@ -197,15 +213,17 @@ function animate() {
   material.uniforms.amp.value = window.amp;
   material.uniforms.val1.value = window.val1;
   material.uniforms.val2.value = window.val2;
-  material.uniforms.color1.value = color1;
-  material.uniforms.color2.value = color2;
-  // mesh.rotation.x += 0.002;
-  // mesh.rotation.y += 0.002;
-  // mesh.rotation.z += 0.002;
+  lightpmesh.position.set(light.position.x, light.position.y, light.position.z);
+  lightpmesh2.position.set(light2.position.x, light2.position.y, light2.position.z);
+  mesh.rotation.x += 0.002;
+  mesh.rotation.y += 0.002;
+  mesh.rotation.z += 0.002;
+
   renderer.render(scene, camera);
 }
 
 animate();
+
 },{"./lib/shaders/fragment.frag":1,"./lib/shaders/vertex.vert":2,"dynamics.js":4,"lodash":5,"three":7,"three-orbit-controls":6}],4:[function(require,module,exports){
 // Generated by CoffeeScript 1.7.1
 (function() {
